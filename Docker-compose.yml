@@ -1,0 +1,7 @@
+services:
+    suivi_cli:
+        container_name: suivi-cli
+        #image: augerclement/suivi_cli:1.0.0
+        build: .
+        environment:
+            STOPS_LIST : "Gare SNCF, Place. de la Brèche, Montplaisir, Place des Marronniers, Rambaudières, Base de Loisirs, Av. François Mitterand, Gare routière" # Stops names separated by ','. Parts are trimmed, so you can use spaces.
