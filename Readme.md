@@ -6,7 +6,10 @@ This small CLI tool is a MVP.
 
 It prompt the user for a number of entering and exiting passengers in a stop, then log the current statut in a file.
 
+## Run with cargo
+
+Use cargo run to use start the tool
+
 ## Docker
 
-Just pull the compose, edit the stop list and roll out.
-You can either copy the final log in a txt yourself, get the one generated in the container, or setup a shared volume to have Docker printing in your machine.
+Due to the inability to interface Terminal from container to outside terminal, the Docker for the project was given up. May be updated if Docker bring up a solution for this use case
