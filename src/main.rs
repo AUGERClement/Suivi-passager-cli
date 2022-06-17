@@ -1,5 +1,6 @@
-use std::env;
+use std::env; // To obtain config
 use std::fmt; // For formatting structs print
+use std::io::stdin; // To get user input
 
 // Define a snapshot for the current bus situation
 // It can then be logged
@@ -10,6 +11,7 @@ struct BusSnapshot {
     current: i32, // The current number of passengers in the bus
 }
 
+// Print formatting for BusSnapshot
 impl fmt::Display for BusSnapshot {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{},{},{},{}", self.stop_name, self.incoming, self.outgoing, self.current)
@@ -22,6 +24,7 @@ enum TypeUpdate {
     Outgoing,
 }
 
+//Print formatting for TypeUpdate
 impl fmt::Display for TypeUpdate {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
        match *self {
@@ -31,10 +34,21 @@ impl fmt::Display for TypeUpdate {
     }
 }
 
-
+// Get a user input for number of passengers stepping in our out.
+// In case of failure, the update bus will reiterate whole registration for the stop.
 fn get_input(stop: &str, status: TypeUpdate) -> i32 {
-    println!("[{}] Input number of {} passagers :", stop, status);
-    0
+    let mut input = String::new();
+    //let mut input = String::from("3");
+
+    println!("[{}] Please input number of {} passagers : ", stop, status);
+    stdin().read_line(&mut input).expect("error: unable to read user input");
+    println!("input is {}", input);
+    let passengers = match input.parse::<i32>() {
+        Ok(val) if val >= 0 => val,
+        _ => panic!("error : expected positive integer"), // Cover err and negative vals
+    };
+    println!("[{}] Registering {} {} passagers", stop, passengers, status);
+    passengers
 }
 
 // Update the state of the bus for the stop, and log it.
@@ -46,19 +60,14 @@ fn update_bus(stop: &str, population:i32) -> () {
         outgoing: get_input(stop, TypeUpdate::Outgoing),
         current: population,//+ incoming - outgoing,
     };
-    //println!("[{}] Number of incoming passagers : {}", stop, bus_snapshot.incoming);
-    //println!("[{}] Number of outgoing passagers : {}", stop, bus_snapshot.outgoing);
     println!("Snapshot : {}", bus_snapshot);
-    // Prompt "[stop] Number of ingoing passagers ?"
-    // Prompt "[stop] Number of outgoing passagers ?"
-    // Log status
     // Append in file
 }
 
 fn main() {
     let stop = match env::var("STOPS_LIST") { // set by Docker compose
         Ok(stop) => stop,
-        Err(_) => panic!("Couldn't find env STOPS_LIST")
+        Err(_) => panic!("error : Couldn't find env STOPS_LIST")
     };
     let stops = stop.split(',');
     let trimmed = stops.map(|stop| stop.trim());
