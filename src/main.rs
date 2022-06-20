@@ -36,6 +36,8 @@ impl fmt::Display for TypeUpdate {
     }
 }
 
+// Start focused of side effect code (could become a module)
+
 // Get a user input for number of passengers stepping in our out.
 // Accept only valid integer and will prompt until it get one.
 fn get_input(stop: &str, status: TypeUpdate) -> i32 {
@@ -72,19 +74,53 @@ fn log_update(bus_snapshot: &BusSnapshot) {
     println!("Snapshot : {}", bus_snapshot);
 }
 
+// This function symply create a file and setup the first line.
+// Could use timestamp to make multiples reports without eraseing old ones.
+// Eventually, could pass the handle around, but need premature optimisations to be worth it.
+fn init_report() {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open("statement.txt")
+        .unwrap();
+
+    if let Err(e) = writeln!(file, "Arrêt,Montées,Descentes,Nombre de passagers") {
+        eprintln!("Couldn't write to file: {}", e);
+    };
+}
+
+// End focused on side effect code
+
+// Return the result of (pop + incoming - outgoing)
+// It wrap the result in a Result because it must be >= 0
+// No vehicle can have -1 passenger
+fn check_population(tmp_snapshot: &BusSnapshot, pop:i32) -> Result<i32, i32> {
+    match pop + tmp_snapshot.incoming - tmp_snapshot.outgoing {
+        val if val >= 0 => Ok(val),
+        val => Err(val),
+    }
+}
+
 // Update the state of the bus for the stop, and log it.
 // Takes a stop name and the population from the last stop.
 // Return the current population (used as arg for the next call)
 fn update_bus(stop: &str, population:i32) -> i32 {
-    let mut bus_snapshot = BusSnapshot { // Mutable because I need filed to compute population
-        stop_name: String::from(stop),
-        incoming: get_input(stop, TypeUpdate::Incoming),
-        outgoing: get_input(stop, TypeUpdate::Outgoing),
-        current: population,//+ incoming - outgoing,
+    let mut tmp_snapshot: BusSnapshot;// Mutable because I need filed to compute population
+    let valid_snap = loop {
+        tmp_snapshot = BusSnapshot { // Mutable because I need filed to compute population
+            stop_name: String::from(stop),
+            incoming: get_input(stop, TypeUpdate::Incoming),
+            outgoing: get_input(stop, TypeUpdate::Outgoing),
+            current: population,//+ incoming - outgoing,
+        };
+        if let Ok(val) = check_population(&tmp_snapshot, population) { // Success compute
+            tmp_snapshot.current = val;
+            break tmp_snapshot;
+        }
+        println!("error : Negative passenger number. Please ensure you inputed good data");
     };
-    // compute and ensure current population is valid
-    //log_update(&bus_snapshot); // Append in file (not yet setup)
-    bus_snapshot.current
+    log_update(&valid_snap); // Append in file (not yet setup)
+    valid_snap.current
 }
 
 fn main() {
@@ -96,7 +132,7 @@ fn main() {
     let trimmed = stops.map(|stop| stop.trim());
     let mut population:i32 = 0;
     
-    // Init statement.txt
+    init_report(); // Create the txt and write the header in
     for stop in trimmed {// A fold wouldn't be as readable for non FP cultists.
         population = update_bus(stop, population);
     }
